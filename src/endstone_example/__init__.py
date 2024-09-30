@@ -1,3 +1,3 @@
-from endstone_example.example_plugin import ExamplePlugin
+from endstone_example.example_plugin import ScoreboardExample
 
-__all__ = ["ExamplePlugin"]
+__all__ = ["ScoreboardExample"]
