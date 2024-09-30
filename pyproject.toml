@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "endstone-example"
+name = "endstone-scoreboard"
 version = "0.4.0"
 dependencies = []
 authors = [
@@ -18,4 +18,4 @@ keywords = ["endstone", "plugin"]
 Homepage = "https://github.com/EndstoneMC/python-example-plugin"
 
 [project.entry-points."endstone"]
-example = "endstone_example:ExamplePlugin"
+scoreboard = "endstone_scoreboard:ScoreboardExample"
