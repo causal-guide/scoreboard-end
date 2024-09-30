@@ -18,4 +18,4 @@ keywords = ["endstone", "plugin"]
 Homepage = "https://github.com/EndstoneMC/python-example-plugin"
 
 [project.entry-points."endstone"]
-scoreboard = "endstone_scoreboard:ScoreboardExample"
+scoreboard = "endstone_example:ScoreboardExample"
