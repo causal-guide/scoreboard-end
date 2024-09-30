@@ -1,92 +1,60 @@
-import datetime
-
-from endstone.command import Command, CommandSender
-from endstone.event import EventPriority, ServerLoadEvent, event_handler
+from endstone import Player
 from endstone.plugin import Plugin
+from endstone.scoreboard import Scoreboard, Criteria, DisplaySlot
 
-from endstone_example.example_listener import ExampleListener
-from endstone_example.python_command import PythonCommandExecutor
-
-
-class ExamplePlugin(Plugin):
-    prefix = "PythonExamplePlugin"
-    api_version = "0.5"
-    load = "POSTWORLD"
-
-    commands = {
-        "python": {
-            "description": "Zen of python",
-            "usages": ["/python"],
-            "aliases": ["py"],
-            "permissions": ["python_example.command.python"],
-        },
-        "kickme": {
-            "description": "Ask the server to kick you with a custom message",
-            "usages": ["/kickme [reason: message]"],
-            "permissions": ["python_example.command.kickme"],
-        },
-    }
-
-    permissions = {
-        "python_example.command": {
-            "description": "Allow users to use all commands provided by this plugin.",
-            "default": True,
-            "children": {
-                "python_example.command.python": True,
-                "python_example.command.kickme": True,
-            },
-        },
-        "python_example.command.python": {
-            "description": "Allow users to use the /python command.",
-            "default": "op",
-        },
-        "python_example.command.kickme": {
-            "description": "Allow users to use the /kickme command.",
-            "default": True,
-        },
-    }
-
-    def on_load(self) -> None:
-        self.logger.info("on_load is called!")
-
+class ScoreboardExample(Plugin):
     def on_enable(self) -> None:
-        self.logger.info("on_enable is called!")
-        self.get_command("python").executor = PythonCommandExecutor()
+        self.logger.info("Scoreboard Plugin Enabled!")
+        self.register_events(self)  # Register event listeners
 
-        self.register_events(self)  # register event listeners defined directly in Plugin class
-        self.register_events(ExampleListener(self))  # you can also register event listeners in a separate class
+    def get_player_score(self, player: Player, objective_name: str) -> int:
+        # Get the scoreboard
+        scoreboard = player.scoreboard
 
-        self.server.scheduler.run_task(self, self.log_time, delay=0, period=20 * 1)  # every second
+        # Retrieve the objective by name
+        objective = scoreboard.get_objective(objective_name)
+        if objective is None:
+            self.logger.info(f"Objective {objective_name} does not exist!")
+            return 0
 
-    def on_disable(self) -> None:
-        self.logger.info("on_disable is called!")
+        # Get the player's score
+        score = objective.get_score(player)
+        return score.value
 
-    def on_command(self, sender: CommandSender, command: Command, args: list[str]) -> bool:
-        # You can also handle commands here instead of setting an executor in on_enable if you prefer
-        match command.name:
-            case "kickme":
-                player = sender.as_player()
-                if player is None:
-                    sender.send_error_message("You must be a player to execute this command.")
-                    return False
+    def set_player_score(self, player: Player, objective_name: str, value: int) -> None:
+        # Get the scoreboard
+        scoreboard = player.scoreboard
 
-                if len(args) > 0:
-                    player.kick(args[0])
-                else:
-                    player.kick("You asked for it!")
+        # Retrieve or create the objective
+        objective = scoreboard.get_objective(objective_name)
+        if objective is None:
+            objective = scoreboard.add_objective(
+                name=objective_name,
+                criteria=Criteria.DUMMY,
+                display_name="Player Score"
+            )
 
-        return True
+        # Set the player's score
+        score = objective.get_score(player)
+        score.value = value
+        self.logger.info(f"Set score for {player.name} to {value}")
+
+    def remove_player_score(self, player: Player, objective_name: str) -> None:
+        # Get the scoreboard
+        scoreboard = player.scoreboard
+
+        # Reset the player's score for the specific objective
+        scoreboard.reset_scores(player)
+        self.logger.info(f"Removed score for {player.name} from {objective_name}")
 
     @event_handler
-    def on_server_load(self, event: ServerLoadEvent):
-        self.logger.info(f"{event.event_name} is passed to on_server_load")
+    def on_player_join(self, event):
+        player = event.player
 
-    @event_handler(priority=EventPriority.HIGH)
-    def on_server_load_2(self, event: ServerLoadEvent):
-        # this will be called after on_server_load because of a higher priority
-        self.logger.info(f"{event.event_name} is passed to on_server_load2")
+        # Create or update player's score on join
+        self.set_player_score(player, "example_objective", 10)
+        player.send_message(f"Welcome, {player.name}! Your score has been set to 10.")
 
-    def log_time(self):
-        now = datetime.datetime.now().strftime("%c")
-        for player in self.server.online_players:
-            player.send_popup(now)
+        # Display current score
+        current_score = self.get_player_score(player, "example_objective")
+        player.send_message(f"Your current score is {current_score}.")
